@@ -9,6 +9,7 @@ ARP_TYPE = 0x0806
 # ip
 ICMP_PROT = 1
 UDP_PROT = 17
+TCP_PROT = 6
 
 # icmp
 ECHO_REPLY_TYPE = 0x0

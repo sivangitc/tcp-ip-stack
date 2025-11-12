@@ -1,8 +1,8 @@
 from protocol import Protocol, Raw
-from constants import ECHO_REPLY_TYPE, ICMP_PROT, MY_IP, UDP_PROT, BROADCAST_MAC, IP_TYPE, MY_MAC
+from constants import ECHO_REPLY_TYPE, ICMP_PROT, MY_IP, UDP_PROT, BROADCAST_MAC, IP_TYPE, MY_MAC, TCP_PROT
 from utils import calc_checksum, bytes_to_ip, bytes_to_mac
 from struct import pack, unpack
-from layer4 import UDP
+from layer4 import UDP, TCP
 
 
 class ICMP(Protocol):
@@ -54,6 +54,10 @@ class IP(Protocol):
         self.optional = b''
         self.payload = payload
         self.hdr_checksum = calc_checksum(self.raw_headers())
+        if isinstance(payload, TCP):
+            payload.checksum = calc_checksum(src_ip + dst_ip
+                                             + pack("!BBH", 0, TCP_PROT, len(payload.to_raw()))
+                                             + payload.to_raw())
 
     def parse(self) -> None:
         (self.ver_hlen, self.dsf, self.total_length, self.identification, self.fl_fo, self.ttl,
@@ -71,6 +75,8 @@ class IP(Protocol):
             self.payload = ICMP(raw=self.raw)
         if self.prot == UDP_PROT:
             self.payload = UDP(raw=self.raw)
+        if self.prot == TCP_PROT:
+            self.payload = TCP(raw=self.raw)
 
     def raw_headers(self) -> bytes:
         return pack("!BBHHHBBH4s4s", self.ver_hlen, self.dsf, self.total_length,

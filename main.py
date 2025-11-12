@@ -2,6 +2,10 @@ from scapy.all import conf
 from time import sleep
 from ethernet import Ethernet
 from constants import MY_MAC
+from layer3 import IP
+from layer4 import TCP
+from struct import pack
+from utils import calc_checksum
 
 if __name__ == "__main__":
     iface = "Intel(R) Dual Band Wireless-AC 3165"
