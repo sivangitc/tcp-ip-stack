@@ -1,7 +1,11 @@
-BROADCAST_MAC = "FF:FF:FF:FF:FF:FF"
+from utils import *
 
-IP_TYPE = bytes.fromhex('0800')
-ARP_TYPE = bytes.fromhex('0806')
+BROADCAST_MAC = mac_to_bytes("FF:FF:FF:FF:FF:FF")
 
-MY_MAC = "0c:54:15:90:74:6e"
-MY_IP = "10.100.102.33"
+IP_TYPE = 0x0800
+ARP_TYPE = 0x0806
+
+ICMP_PROT = 1
+
+MY_MAC = mac_to_bytes("0c:54:15:90:74:6e")
+MY_IP = ip_to_bytes("10.100.102.33")

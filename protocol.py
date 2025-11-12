@@ -2,16 +2,15 @@ from typing import Optional
 
 
 class Protocol:
-    def __init__(self, raw: bytes) -> None:
+    def __init__(self, *, raw: bytes = b'') -> None:
         self.raw = raw
-        self.payload: Optional["Protocol"] = None
 
     def extract_field(self, length: int) -> bytes:
         field = self.raw[:length]
         self.raw = self.raw[length:]
         return field
 
-    def parse_next_type(self) -> Optional["Protocol"]:
+    def parse_next_type(self) -> None:
         return None
 
     def parse(self) -> None:
@@ -25,6 +24,9 @@ class Protocol:
 
 
 class Raw(Protocol):
+    def __init__(self, raw: bytes = b'') -> None:
+        self.raw = raw
+
     def parse(self) -> None:
         print("Not Parsing Raw")
 
