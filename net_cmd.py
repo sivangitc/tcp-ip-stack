@@ -1,13 +1,13 @@
-from scapy.all import conf, IFACES
-from constants import *
-from utils import *
-from struct import pack, unpack, unpack_from
+from constants import ECHO_REQUEST_TYPE, ICMP_PROT, ARP_TYPE
+from utils import ip_to_bytes, mac_to_bytes, bytes_to_mac
 from layer3 import ICMP, IP, ARP
 from ethernet import Ethernet
 from protocol import Raw
 from time import sleep, time_ns
+from typing import Any
 
-def ping(sock, dst_ip_s: str) -> None:
+
+def ping(sock: Any, dst_ip_s: str) -> None:
     dst_ip = ip_to_bytes(dst_ip_s)
     icmp = ICMP(type=ECHO_REQUEST_TYPE, payload=Raw(b"CYBERS"))
     ip = IP(prot=ICMP_PROT, payload=icmp, dst_ip=dst_ip)
@@ -20,7 +20,7 @@ def ping(sock, dst_ip_s: str) -> None:
         sleep(0.1)
         recv = sock.recv_raw()
         if not recv[1]:
-            continue    
+            continue
         p = Ethernet(raw=recv[1])
         if not isinstance(p.payload, IP) or not isinstance(p.payload.payload, ICMP):
             continue
@@ -30,7 +30,7 @@ def ping(sock, dst_ip_s: str) -> None:
             return
 
 
-def arp(sock, dst_ip_s: str) -> str:
+def arp(sock: Any, dst_ip_s: str) -> str:
     dst_ip = ip_to_bytes(dst_ip_s)
     arp = ARP(dst_ip=dst_ip)
     eth = Ethernet(type=ARP_TYPE, payload=arp)
@@ -40,7 +40,7 @@ def arp(sock, dst_ip_s: str) -> str:
         sleep(0.1)
         recv = sock.recv_raw()
         if not recv[1]:
-            continue    
+            continue
         p = Ethernet(raw=recv[1])
         if not isinstance(p.payload, ARP):
             continue

@@ -1,14 +1,13 @@
 from protocol import Protocol, Raw
 from layer3 import ARP, IP
-from typing import Optional
-from utils import *
-from constants import *
+from utils import bytes_to_mac
+from constants import MY_MAC, BROADCAST_MAC, IP_TYPE, ARP_TYPE
 from struct import unpack, pack
 
 
 class Ethernet(Protocol):
-    def __init__(self, *, raw: bytes = b'', src: bytes = MY_MAC, dst: bytes = BROADCAST_MAC, type: int = IP_TYPE,
-                 payload: Protocol = Raw()) -> None:
+    def __init__(self, *, raw: bytes = b'', src: bytes = MY_MAC, dst: bytes = BROADCAST_MAC,
+                 type: int = IP_TYPE, payload: Protocol = Raw()) -> None:
         super().__init__(raw=raw)
         if raw:
             self.parse()
@@ -17,7 +16,7 @@ class Ethernet(Protocol):
         self.src = src
         self.type = type
         self.payload = payload
-        
+
     def parse(self) -> None:
         self.dst, self.src, self.type = unpack("!6s6sH", self.raw[:14])
         self.raw = self.raw[14:]

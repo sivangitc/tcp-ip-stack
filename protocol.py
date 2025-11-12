@@ -15,7 +15,7 @@ class Protocol:
 
     def parse(self) -> None:
         raise NotImplementedError
-    
+
     def to_raw(self) -> bytes:
         raise NotImplementedError
 
@@ -32,6 +32,6 @@ class Raw(Protocol):
 
     def to_raw(self) -> bytes:
         return self.raw
-    
+
     def __repr__(self) -> str:
         return f"< Raw {len(self.raw)}B >"

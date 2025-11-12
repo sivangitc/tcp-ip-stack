@@ -1,4 +1,4 @@
-from utils import *
+from utils import mac_to_bytes, ip_to_bytes
 
 BROADCAST_MAC = mac_to_bytes("FF:FF:FF:FF:FF:FF")
 
@@ -8,8 +8,9 @@ ARP_TYPE = 0x0806
 
 # ip
 ICMP_PROT = 1
+UDP_PROT = 17
 
-#icmp
+# icmp
 ECHO_REPLY_TYPE = 0x0
 ECHO_REQUEST_TYPE = 0x8
 
