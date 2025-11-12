@@ -7,18 +7,22 @@ from struct import unpack, pack
 
 
 class Ethernet(Protocol):
-    def __init__(self, *, raw: bytes = b'', src: bytes = MY_MAC, dst: bytes = BROADCAST_MAC, type: int = IP_TYPE) -> None:
+    def __init__(self, *, raw: bytes = b'', src: bytes = MY_MAC, dst: bytes = BROADCAST_MAC, type: int = IP_TYPE,
+                 payload: Protocol = Raw()) -> None:
         super().__init__(raw=raw)
+        if raw:
+            self.parse()
+            return
         self.dst = dst
         self.src = src
         self.type = type
-        if raw:
-            self.parse()
-
+        self.payload = payload
+        
     def parse(self) -> None:
         self.dst, self.src, self.type = unpack("!6s6sH", self.raw[:14])
         self.raw = self.raw[14:]
         self.payload = Raw(self.raw)
+        self.parse_next_type()
 
     def parse_next_type(self) -> None:
         raw_payload = self.raw
@@ -36,7 +40,7 @@ class Ethernet(Protocol):
     def __repr__(self) -> str:
         src = bytes_to_mac(self.src)
         dst = bytes_to_mac(self.dst)
-        return f"<{src}->{dst} {hex(self.type)} | {self.payload}>"
+        return f"< ETH {src}->{dst} {hex(self.type)} | {self.payload} >"
 
     def to_raw(self) -> bytes:
         raw = pack("!6s6sH", self.dst, self.src, self.type)

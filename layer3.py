@@ -1,7 +1,36 @@
 from protocol import Protocol, Raw
 from constants import *
 from utils import *
-from struct import pack, unpack
+from struct import pack, unpack, unpack_from
+
+
+class ICMP(Protocol):
+    def __init__(self, *, raw: bytes = b'', type: int = ECHO_REPLY_TYPE, code: int = 0, 
+                 payload: Raw = Raw()) -> None:
+        super().__init__(raw=raw)
+        if raw:
+            self.parse()
+            return
+        self.type = type
+        self.code = code
+        self.rest = bytes.fromhex("00 00 00 00")
+        self.payload = payload
+        self.checksum = 0
+        self.checksum = IP.calc_checksum(self.raw_headers() + self.payload.to_raw())
+
+    def parse(self) -> None:
+        (self.type, self.code, self.checksum, self.rest) = unpack("!BBH4s", self.raw[:8])
+        self.raw = self.raw[8:]
+        self.payload = Raw(self.raw)
+
+    def raw_headers(self) -> bytes:
+        return pack("!BBH4s", self.type, self.code, self.checksum, self.rest)
+
+    def to_raw(self) -> bytes:
+        return self.raw_headers() + self.payload.to_raw()
+
+    def __repr__(self) -> str:
+        return f"<ICMP {self.type} {self.code} | {self.payload} >"
 
 
 class IP(Protocol):
@@ -11,39 +40,59 @@ class IP(Protocol):
         if raw:
             self.parse()
             return
-        self.ver_hlen = 0x54
+        self.ver_hlen = 0x45
         self.dsf = 0x00
         self.total_length = len(payload.to_raw()) + 20
         self.identification = 3
         self.fl_fo = 0x0000
         self.ttl = 64
         self.prot = prot
-        self.hdr_checksum = 1 # not validated
+        self.hdr_checksum = 0
         self.src_ip = src_ip
         self.dst_ip = dst_ip
         self.optional = b''
         self.payload = payload
+        self.hdr_checksum = self.calc_checksum(self.raw_headers())
 
     def parse(self) -> None:
         (self.ver_hlen, self.dsf, self.total_length, self.identification, self.fl_fo, self.ttl, self.prot, 
          self.hdr_checksum, self.src_ip, self.dst_ip) = unpack("!BBHHHBBH4s4s", self.raw[:20])
         self.hdr_len = (self.ver_hlen & 0xF) * 4
-        print(self.hdr_len)
         self.optional = b''
         if self.hdr_len > 20:
             self.optional = self.raw[20: self.hdr_len]
         self.raw = self.raw[self.hdr_len:]
         self.payload = Raw(self.raw)
+        self.parse_next_type()
 
-    def to_raw(self) -> bytes:
+    def parse_next_type(self) -> None:
+        if self.prot == ICMP_PROT:
+            self.payload = ICMP(raw=self.raw)
+
+    def raw_headers(self) -> bytes:
         return pack("!BBHHHBBH4s4s", self.ver_hlen, self.dsf, self.total_length, 
                     self.identification, self.fl_fo, self.ttl, self.prot, self.hdr_checksum, 
-                    self.src_ip, self.dst_ip) + self.optional + self.payload.to_raw()
+                    self.src_ip, self.dst_ip)
+
+    def to_raw(self) -> bytes:
+        return self.raw_headers() + self.optional + self.payload.to_raw()
     
     def __repr__(self) -> str:
         src = bytes_to_ip(self.src_ip)
         dst = bytes_to_ip(self.dst_ip)
-        return f"< {src} -> {dst} ttl={self.ttl} prot={self.prot} | {self.payload} >"
+        return f"< IP {src} -> {dst} ttl={self.ttl} prot={self.prot} | {self.payload} >"
+
+    @classmethod
+    def calc_checksum(cls, data: bytes) -> int:
+        """return InternetChecksum(data)"""
+        if len(data) % 2 != 0:
+            data += b'\x00'
+        sum = 0
+        for i in range(len(data) // 2):
+            sum += unpack_from("!H", buffer=data, offset= i * 2)[0]
+        sum += sum >> 16
+        sum = ((~sum) & 0xFFFF)
+        return sum
 
 
 
@@ -66,6 +115,7 @@ class ARP(Protocol):
         self.sender_ip = src_ip
         self.target_mac = dst_mac
         self.target_ip = dst_ip
+        self.payload = Raw()
 
     def parse(self) -> None:
         (self.hw_type, self.prot, self.hw_size, self.prot_size, self.opcode, self.sender_mac, 
@@ -81,4 +131,4 @@ class ARP(Protocol):
             return f"< {bytes_to_ip(self.target_ip)}? tell {bytes_to_ip(self.sender_ip)} >"
         if self.opcode == self.REPLY_TYPE:
             return f"< {bytes_to_ip(self.sender_ip)} at {bytes_to_mac(self.sender_mac)} >"
-        return f"< {bytes_to_ip(self.sender_ip)}->{bytes_to_ip(self.target_ip)} {self.opcode} >"
+        return f"< ARP {bytes_to_ip(self.sender_ip)}->{bytes_to_ip(self.target_ip)} {self.opcode} >"
